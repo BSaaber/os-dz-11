@@ -1,4 +1,5 @@
 #include <stdio.h>      /* for printf() and fprintf() */
+#include <fcntl.h>
 #include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
 #include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
 #include <stdlib.h>     /* for atoi() and exit() */
@@ -9,7 +10,7 @@
 #define MAXPENDING 5    /* Maximum outstanding connection requests */
 
 void DieWithError(char *errorMessage);  /* Error handling function */
-void ClientReciever(int clntSocket);
+int ClientReciever(int clntSocket);
 
 int main(int argc, char *argv[])
 {
@@ -17,7 +18,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in echoServAddr; /* Echo server address */
     unsigned short echoServPort, listenerPort;     /* Echo server port */
     char *servIP;                    /* Server IP address (dotted quad) */
-    char *echoString;                /* String to send to echo server */
+    char echoString[32];                /* String to send to echo server */
     char echoBuffer[RCVBUFSIZE];     /* Buffer for echo string */
     unsigned int echoStringLen;      /* Length of string to echo */
     int bytesRcvd, totalBytesRcvd;   /* Bytes read in single recv()
@@ -29,13 +30,10 @@ int main(int argc, char *argv[])
                argv[0]);
        exit(1);
     }
-
     servIP = argv[1];             /* First arg: server IP address (dotted quad) */
 
     echoServPort = atoi(argv[2]); /* Use given port, if any */
     listenerPort = atoi(argv[3]);
-
-
 
 
 
@@ -44,19 +42,18 @@ int main(int argc, char *argv[])
         DieWithError("fork() failed\n");
 
 
-    if (processID != 0) {
+    if (processID == 0) {
+	//dup(stdin_dup);
 
+        //printf("log: i am father client process, my pid is %d\n", getpid());
 
-        printf("log: i am father client process, my pid is %d\n", getpid());
-
-
-
+for(; ;) {
 
     /* Create a reliable, stream socket using TCP */
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         DieWithError("socket() failed");
 
-    printf("log: socket() worked fine\n");
+    //printf("log: socket() worked fine\n");
 
     /* Construct the server address structure */
     memset(&echoServAddr, 0, sizeof(echoServAddr));     /* Zero out structure */
@@ -68,41 +65,41 @@ int main(int argc, char *argv[])
     if (connect(sock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
         DieWithError("connect() failed");
 
-        printf("log: connect() worked fine\n");
+       // printf("log: connect() worked fine\n");
 
 
-    for(; ;) {
-        sleep(2);
-        //scanf("%s", echoString);
-        echoString = "127.0.0.1:13|maxem\0";
+	printf("\n\n\n");
+	fgets(echoString, 32, stdin);
+	//printf("%c%c%c%c", echoString[0], echoString[1], echoString[2], echoString[3]);
+        //echoString = "127.0.0.1:13|maxem\0";
         echoStringLen = strlen(echoString) + 1;
-        printf("log: input string is %s\n", echoString);
+	echoString[strlen(echoString)] = '\0';
+        //printf("log: input string is %s\n", echoString);
 
         /* Send the string to the server */
         if (send(sock, echoString, echoStringLen, 0) != echoStringLen)
             DieWithError("send() sent a different number of bytes than expected");
 
-        printf("log: send() worked fine\n");
-
-//        /* Receive the same string back from the server */
-//        totalBytesRcvd = 0;
-//        printf("Received: ");            // Setup to print the echoed string
-//        while (totalBytesRcvd < echoStringLen) {
-//            /* Receive up to the buffer size (minus 1 to leave space for
-//            a null terminator) bytes from the sender */
-//            if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
-//                DieWithError("recv() failed or connection closed prematurely");
-//            totalBytesRcvd += bytesRcvd;   /* Keep tally of total bytes */
-//            echoBuffer[bytesRcvd] = '\0';  /* Terminate the string! */
-//            printf("%s", echoBuffer);      /* Print the echo buffer */
-//        }
+        //printf("log: send() worked fine\n");
+	char* t = echoString;
+	while (*t++ != '|');
 
         printf("\n");    /* Print a final linefeed */
-        sleep(2);
+	            if (strlen(t) == 8 && t[0] == 'T' &&
+                    t[1] == 'h' &&
+                    t[2] == 'e' &&
+                    t[3] == ' ' &&
+                    t[4] == 'E' &&
+                    t[5] == 'n' &&
+                    t[6] == 'd') {
+			    printf("goodbye");
+
+            break;
+    }
     }
 
     close(sock);
-
+	return 0;
     }
 
 
@@ -111,8 +108,11 @@ int main(int argc, char *argv[])
 
 
     {
+	    
+	    //close(0);
+	    //close(1);
         //sleep(5);
-        printf("log: i am child client process, my pid is %d\n", getpid());
+       // printf("log: i am child client process, my pid is %d\n", getpid());
 
     // Listening logic, will be forked
 
@@ -159,11 +159,14 @@ int main(int argc, char *argv[])
             DieWithError("accept() failed");
 
         /* clntSock is connected to a client! */
-        printf("ensuring this is connection with 7th port. port of sender is: %d\n", echoClntAddr.sin_port);
+       // printf("ensuring this is connection with 7th port. port of sender is: %d\n", echoClntAddr.sin_port);
 
-        printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
+       // printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
 
-        ClientReciever(clntSock);
+        int res = ClientReciever(clntSock);
+	if (res == -1) {
+		return 0;
+	}
     }
 
 
