@@ -14,7 +14,7 @@
 
 void DieWithError(char *errorMessage);  /* Error handling function */
 
-void HandleTCPClient(int clntSocket)
+int HandleTCPClient(int clntSocket)
 {
     printf("Hello world, i am HandleTCPClient\n");
     char echoBuffer[RCVBUFSIZE];        /* Buffer for echo string */
@@ -37,9 +37,9 @@ void HandleTCPClient(int clntSocket)
 
     printf("log: recv() worked fine\n");
     if (recvMsgSize == 0) {
-        printf("zero length message, skipping\n");
+      //  printf("zero length message, skipping\n");
         close(clntSocket);
-        return;
+        return 0;
     }
 
     char* t = echoBuffer;
@@ -56,9 +56,9 @@ void HandleTCPClient(int clntSocket)
     strncpy(portString, tt, portLen);
     portString[portLen] = '\0';
     port = atoi(portString);
-    printf("now printing info about input signal\n");
+   // printf("now printing info about input signal\n");
 
-    printf("log: addr is %s, port is %d, message is %s\n", target_addr, port, t);
+   // printf("log: addr is %s, port is %d, message is %s\n", target_addr, port, t);
 
 
     // copied from client
@@ -79,22 +79,25 @@ void HandleTCPClient(int clntSocket)
 
 
     printf("Sending message to  IP address = %s. and port %d Wait...\n", inet_ntoa(echoServAddr.sin_addr), port);
+    printf("by the way, message length is: %ld\n", strlen(t));
     /* Establish the connection to ANOTHER CLIENT */
     if (connect(sock, (struct sockaddr *) &echoServAddr, sizeof(echoServAddr)) < 0)
         DieWithError("connect() failed");
 
-    printf("log: connect() worked fine - connected to second client\n");
+    //printf("log: connect() worked fine - connected to second client\n");
 
     //echoStringLen = strlen(echoString);          /* Determine input length */
-
+//    printf("log: len of the message is %ld", strlen(t));
+  //  printf("log: last elem is: %c, pre last is: %c, null term: %d", t[strlen(t) - 1], t[strlen(t) - 2], t[strlen(t)] == '\0');
     /* Send the string to ANOTHER CLIENT */
-    if (send(sock, "regular_message_to_send\0", strlen("regular_message_to_send\0") + 1, 0) != strlen("regular_message_to_send\0") + 1)
+    if (send(sock, t, strlen(t), 0) != strlen(t))
         DieWithError("send() sent a different number of bytes than expected");
 
-    printf("log: send() worked fine - sent data to second client\n");
+   // printf("log: send() worked fine - sent data to second client\n");
 
 
     close(sock);
+   // printf("closed connection with client listener\n");
 
 
 
@@ -102,4 +105,16 @@ void HandleTCPClient(int clntSocket)
 
     //////////////////////////////////////
     close(clntSocket);
+                    if (strlen(t) == 8 && t[0] == 'T' &&
+                    t[1] == 'h' &&
+                    t[2] == 'e' &&
+                    t[3] == ' ' &&
+                    t[4] == 'E' &&
+                    t[5] == 'n' &&
+                    t[6] == 'd') {
+
+            return -1;
+    }
+		    return 0;
+   // printf("closed connection with requester\n");
 }
