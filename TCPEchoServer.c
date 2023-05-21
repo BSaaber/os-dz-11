@@ -8,7 +8,7 @@
 #define MAXPENDING 5    /* Maximum outstanding connection requests */
 
 void DieWithError(char *errorMessage);  /* Error handling function */
-void HandleTCPClient(int clntSocket);   /* TCP client handling function */
+int HandleTCPClient(int clntSocket);   /* TCP client handling function */
 
 int main(int argc, char *argv[])
 {
@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
         /* Set the size of the in-out parameter */
         clntLen = sizeof(echoClntAddr);
 
+	printf("waiting for a client to connect\n");
         /* Wait for a client to connect */
         if ((clntSock = accept(servSock, (struct sockaddr *) &echoClntAddr,
                                &clntLen)) < 0)
@@ -64,7 +65,11 @@ int main(int argc, char *argv[])
 
         printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
 
-        HandleTCPClient(clntSock);
+        int result = HandleTCPClient(clntSock);
+	if (result == -1) {
+		return 0;
+	}
+	//printf("out of HandleTCPClient\n");
     }
     /* NOT REACHED */
 }
